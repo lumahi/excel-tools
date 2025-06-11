@@ -60,35 +60,39 @@ async function handleFileUpload(file, cacheTarget, previewContainerId) {
         const data = await readFile(file);
         if (cacheTarget === 'source') cachedSourceData = data;
         else cachedLookupData = data;
-        renderPreview(data, previewContainerId, 5, 5);
+        renderPreview(data, previewContainerId, { rows: 5, cols: 5, auto: false });
     } catch (err) {
         container.innerHTML = `<div class="alert alert-danger">Error reading file.</div>`;
     }
 }
 
-function renderPreview(data, containerId, rows, cols) {
+function renderPreview(data, containerId, options) {
+    const { rows, cols, auto } = options;
     const container = document.getElementById(containerId);
     if (!data || data.length === 0) {
         container.innerHTML = '<div class="alert alert-light">File is empty.</div>';
         return;
     }
     
-    const numRows = Math.max(1, rows);
-    const numCols = Math.max(1, cols);
+    const dataCache = containerId.startsWith('source') ? cachedSourceData : cachedLookupData;
+    let numRows, numCols;
+
+    if (auto) {
+        numRows = dataCache.length;
+        numCols = dataCache.reduce((max, row) => Math.max(max, (row || []).length), 0) || 1;
+    } else {
+        numRows = Math.max(1, rows);
+        numCols = Math.max(1, cols);
+    }
     
-    // Process existing rows, padding columns as needed.
     let previewData = data.slice(0, numRows).map(row => {
         const newRow = (row || []).slice(0, numCols);
-        while(newRow.length < numCols) {
-            newRow.push(undefined);
-        }
+        while(newRow.length < numCols) newRow.push(undefined);
         return newRow;
     });
 
-    // Add empty rows if the requested number of rows is greater than available data.
     while (previewData.length < numRows) {
-        const emptyRow = Array(numCols).fill(undefined);
-        previewData.push(emptyRow);
+        previewData.push(Array(numCols).fill(undefined));
     }
 
     const headers = previewData[0] || [];
@@ -97,9 +101,13 @@ function renderPreview(data, containerId, rows, cols) {
     const controlsHTML = `
         <div class="d-flex align-items-center gap-2 mt-3 preview-controls">
             <label for="${containerId}-rows" class="form-label mb-0 small">Preview:</label>
-            <input type="number" class="form-control form-control-sm" id="${containerId}-rows" value="${rows}" min="1">
+            <input type="number" class="form-control form-control-sm" id="${containerId}-rows" value="${auto ? numRows : rows}" min="1" ${auto ? 'disabled' : ''}>
             <span class="text-muted">x</span>
-            <input type="number" class="form-control form-control-sm" id="${containerId}-cols" value="${cols}" min="1">
+            <input type="number" class="form-control form-control-sm" id="${containerId}-cols" value="${auto ? numCols : cols}" min="1" ${auto ? 'disabled' : ''}>
+            <div class="form-check form-check-inline ms-2">
+                <input class="form-check-input" type="checkbox" id="${containerId}-autoresize" ${auto ? 'checked' : ''}>
+                <label class="form-check-label small" for="${containerId}-autoresize">Auto-size</label>
+            </div>
         </div>
         <p class="text-muted small fst-italic mt-1">This is a cosmetic preview and does not affect the final VLOOKUP results.</p>`;
     
@@ -113,10 +121,21 @@ function renderPreview(data, containerId, rows, cols) {
 
     container.innerHTML = controlsHTML + tableHTML;
     
-    const dataCache = containerId.startsWith('source') ? cachedSourceData : cachedLookupData;
-    document.getElementById(`${containerId}-rows`).addEventListener('change', (e) => renderPreview(dataCache, containerId, parseInt(e.target.value), parseInt(document.getElementById(`${containerId}-cols`).value)));
-    document.getElementById(`${containerId}-cols`).addEventListener('change', (e) => renderPreview(dataCache, containerId, parseInt(document.getElementById(`${containerId}-rows`).value), parseInt(e.target.value)));
+    const rowsInput = document.getElementById(`${containerId}-rows`);
+    const colsInput = document.getElementById(`${containerId}-cols`);
+    const autoResizeCheckbox = document.getElementById(`${containerId}-autoresize`);
+
+    rowsInput.addEventListener('change', (e) => renderPreview(dataCache, containerId, { rows: parseInt(e.target.value), cols: parseInt(colsInput.value), auto: false }));
+    colsInput.addEventListener('change', (e) => renderPreview(dataCache, containerId, { rows: parseInt(rowsInput.value), cols: parseInt(e.target.value), auto: false }));
+    autoResizeCheckbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            renderPreview(dataCache, containerId, { rows: 5, cols: 5, auto: true });
+        } else {
+            renderPreview(dataCache, containerId, { rows: 5, cols: 5, auto: false });
+        }
+    });
 }
+
 
 function readFile(file) {
     return new Promise((resolve, reject) => {
