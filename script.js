@@ -76,13 +76,20 @@ function renderPreview(data, containerId, rows, cols) {
     const numRows = Math.max(1, rows);
     const numCols = Math.max(1, cols);
     
-    let previewData = data.slice(0, numRows + 1).map(row => {
+    // Process existing rows, padding columns as needed.
+    let previewData = data.slice(0, numRows).map(row => {
         const newRow = (row || []).slice(0, numCols);
         while(newRow.length < numCols) {
             newRow.push(undefined);
         }
         return newRow;
     });
+
+    // Add empty rows if the requested number of rows is greater than available data.
+    while (previewData.length < numRows) {
+        const emptyRow = Array(numCols).fill(undefined);
+        previewData.push(emptyRow);
+    }
 
     const headers = previewData[0] || [];
     const body = previewData.slice(1);
