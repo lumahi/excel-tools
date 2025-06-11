@@ -176,14 +176,17 @@
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
-            <p>Use these files to test the tool's core functionality. The source file now contains blank cells and a blank row to demonstrate the interactive preview.</p>
+            <p>Use these files (20 data rows each) to test the tool's functionality.</p>
             <hr>
-            <h6>Source File</h6>
-            <p class="text-muted small">This is the large dataset you want to search within. It includes intentional blank spots.</p>
-            <button id="downloadSourceFileBtn" class="btn btn-secondary w-100 mb-4"><i class="bi bi-download"></i> Download Sample Source</button>
-            <h6>Lookup File</h6>
-            <p class="text-muted small">This is the smaller list of values you want to find. Product IDs match the source file format.</p>
-            <button id="downloadLookupFileBtn" class="btn btn-secondary w-100"><i class="bi bi-download"></i> Download Sample Lookup</button>
+            <h6>Standard Samples (with imperfections)</h6>
+            <p class="text-muted small">Ideal for testing "not found" filtering. The lookup file contains IDs that do not exist in the source.</p>
+            <button id="downloadSourceStandardBtn" class="btn btn-secondary w-100 mb-2"><i class="bi bi-download"></i> Download Standard Source</button>
+            <button id="downloadLookupStandardBtn" class="btn btn-secondary w-100 mb-4"><i class="bi bi-download"></i> Download Standard Lookup</button>
+
+            <h6>Perfect Match Samples (clean data)</h6>
+            <p class="text-muted small">Ideal for testing "matched" filtering. All lookup IDs exist in the source file.</p>
+            <button id="downloadSourcePerfectBtn" class="btn btn-secondary w-100 mb-2"><i class="bi bi-download"></i> Download Perfect Source</button>
+            <button id="downloadLookupPerfectBtn" class="btn btn-secondary w-100"><i class="bi bi-download"></i> Download Perfect Lookup</button>
         </div>
     </div>
 
@@ -456,55 +459,115 @@
         }
         
         function downloadCSV() {
-             let csvContent = 'data:text/csv;charset=utf-8,';
-             enrichedResults.forEach(rowArray => {
+            const csvRows = [];
+            enrichedResults.forEach(rowArray => {
                 let row = rowArray.map(cell => {
                     const cellStr = (cell === null || cell === undefined) ? '' : String(cell);
-                    return cellStr.includes(',') ? `"${cellStr.replace(/"/g, '""')}"` : cellStr;
+                    if (cellStr.search(/("|,|\n)/g) >= 0) {
+                        return `"${cellStr.replace(/"/g, '""')}"`;
+                    }
+                    return cellStr;
                 }).join(',');
-                csvContent += row + '\r\n';
+                csvRows.push(row);
             });
+            
+            const csvString = csvRows.join('\r\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
             const link = document.createElement('a');
-            link.setAttribute('href', encodeURI(csvContent));
+            link.setAttribute('href', url);
             link.setAttribute('download', 'enriched_results.csv');
+            link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            URL.revokeObjectURL(url);
         }
         
         sourceFileInput.addEventListener('change', e => handleFileUpload(e.target.files[0], 'source', 'sourcePreview'));
         lookupFileInput.addEventListener('change', e => handleFileUpload(e.target.files[0], 'lookup', 'lookupPreview'));
         downloadResultsBtn.addEventListener('click', downloadCSV);
 
-        document.getElementById('downloadSourceFileBtn').addEventListener('click', () => {
-             const data = [
-                ["ID", "Product Name", "Category", "Unit Price", "Stock Level", "Supplier", "Date Added"],
-                ["PROD-001", "Laptop Pro 15", "Electronics", 1200, 50, "TechCorp", "2023-01-15"],
-                ["PROD-002", "Wireless Mouse", "Accessories", 25, 300, "ClickFast", "2023-02-20"],
-                [], // Intentionally blank row for preview testing
-                ["PROD-003", "Mechanical Keyboard", "Accessories", 80, 150, "ClickFast", "2023-02-22"],
-                ["PROD-004", "4K Monitor 27", "Electronics", 350, 75, "ViewBright", "2023-03-10"],
-                ["PROD-005", "USB-C Hub", "Accessories", 45, 200, null, "2023-04-01"] // Intentionally blank cell
-            ];
+        // --- NEW SAMPLE FILE GENERATION ---
+
+        function generateSampleData(rowCount, isPerfect) {
+            const sourceData = [["ID", "Product Name", "Category", "Unit Price", "Stock Level", "Supplier", "Date Added"]];
+            const lookupData = [["ProductID", "Quantity Needed", "Urgency"]];
+            
+            const categories = ["Electronics", "Accessories", "Software", "Peripherals", "Components"];
+            const suppliers = ["TechCorp", "Innovate Inc.", "Gadgetron", "Supply Co", "Global Parts"];
+            const urgencies = ["High", "Medium", "Low"];
+            const p_names = ["Quantum", "Aero", "Hyper", "Stellar", "Nova", "Omega", "Alpha", "Delta", "Orion", "Pulsar"];
+            const p_models = ["Pro", "Max", "XT", "Core", "Mini", "Plus", "HD", "4K", "Stealth", "Prime"];
+
+            let sourceIds = [];
+            for (let i = 1; i <= rowCount; i++) {
+                const id = `PROD-${String(i).padStart(3, '0')}`;
+                sourceIds.push(id);
+
+                const name = `${p_names[i % p_names.length]} ${p_models[i % p_models.length]} ${i}`;
+                const category = categories[i % categories.length];
+                const price = (Math.random() * 1490 + 10).toFixed(2);
+                const stock = Math.floor(Math.random() * 500);
+                const supplier = suppliers[i % suppliers.length];
+                const date = new Date(Date.now() - Math.random() * 31536000000).toISOString().split('T')[0]; // Within last year
+                
+                sourceData.push([id, name, category, price, stock, supplier, date]);
+            }
+
+            if (!isPerfect) {
+                sourceData.splice(7, 0, []); // Add a blank row
+                sourceData[11][5] = null; // Add a blank cell
+            }
+            
+            let lookupIds = [];
+            if (isPerfect) {
+                lookupIds = [...sourceIds].sort(() => 0.5 - Math.random()); // Shuffle for realism
+            } else {
+                lookupIds = [...sourceIds].sort(() => 0.5 - Math.random()).slice(0, rowCount - 4); // Take most
+                lookupIds.push("PROD-888", "PROD-999"); // Add some non-existent ones
+                lookupIds = lookupIds.sort(() => 0.5 - Math.random()); // Re-shuffle
+            }
+
+            // Ensure lookupData also has `rowCount` rows
+            for(let i = 0; i < rowCount; i++) {
+                const id = lookupIds[i] || `PROD-${String(800+i).padStart(3, '0')}`; // Add more non-existent if needed
+                const quantity = Math.floor(Math.random() * 50) + 1;
+                const urgency = urgencies[i % urgencies.length];
+                lookupData.push([id, quantity, urgency]);
+            }
+            
+            return { sourceData, lookupData };
+        }
+
+        function downloadSample(data, fileName) {
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "SourceData");
-            XLSX.writeFile(wb, "sample_source_data_with_blanks.xlsx");
+            XLSX.utils.book_append_sheet(wb, ws, "SampleData");
+            XLSX.writeFile(wb, fileName);
+        }
+
+        document.getElementById('downloadSourceStandardBtn').addEventListener('click', () => {
+             const { sourceData } = generateSampleData(20, false);
+             downloadSample(sourceData, 'sample_source_standard.xlsx');
         });
-        
-        document.getElementById('downloadLookupFileBtn').addEventListener('click', () => {
-             const data = [
-                ["ProductID", "Quantity Needed", "Urgency"],
-                ["PROD-003", 10, "High"],
-                ["PROD-001", 5, "Medium"],
-                ["PROD-999", 2, "Low"], 
-                ["PROD-004", 8, "High"]
-            ];
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "LookupData");
-            XLSX.writeFile(wb, "sample_lookup_data_perfect.xlsx");
+
+        document.getElementById('downloadLookupStandardBtn').addEventListener('click', () => {
+             const { lookupData } = generateSampleData(20, false);
+             downloadSample(lookupData, 'sample_lookup_standard.xlsx');
         });
+
+        document.getElementById('downloadSourcePerfectBtn').addEventListener('click', () => {
+             const { sourceData } = generateSampleData(20, true);
+             downloadSample(sourceData, 'sample_source_perfect.xlsx');
+        });
+
+        document.getElementById('downloadLookupPerfectBtn').addEventListener('click', () => {
+             const { lookupData } = generateSampleData(20, true);
+             downloadSample(lookupData, 'sample_lookup_perfect.xlsx');
+        });
+
     </script>
 </body>
 </html>
