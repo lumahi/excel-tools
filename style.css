@@ -4,7 +4,7 @@ body {
     min-height: 100vh;
 }
 .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
-.container { max-width: 800px; }
+.container-fluid { max-width: 1600px; }
 .card {
     border: none;
     border-radius: 0.75rem;
@@ -20,7 +20,7 @@ body {
 .btn-primary { background-color: #0d6efd; border: none; }
 .btn-primary:hover { background-color: #0a58ca; }
 .btn-secondary { background-color: #6c757d; border: none; }
-#result-card { display: none; }
+#result-card { display: flex; flex-direction: column; }
 .spinner-border-sm { margin-right: 5px; }
 .form-check-input:checked { background-color: #0d6efd; border-color: #0d6efd; }
 .preview-container {
@@ -44,6 +44,7 @@ body {
     color: rgba(255, 255, 255, 0.8);
     transition: transform 0.2s ease-in-out;
 }
-.collapsible-header[aria-expanded="false"] .btn-toggle-icon {
+/* This selector correctly handles the rotation when Bootstrap adds the 'collapsed' class */
+.collapsible-header.collapsed .btn-toggle-icon {
     transform: rotate(-90deg);
 }

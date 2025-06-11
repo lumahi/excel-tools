@@ -18,112 +18,138 @@
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-light bg-white mb-5">
-        <div class="container-fluid" style="max-width: 800px;">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white mb-4">
+        <div class="container-fluid">
             <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-tools"></i> Advanced VLOOKUP Tool</a>
+             <button class="btn btn-outline-primary ms-auto" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSamples" aria-controls="offcanvasSamples">
+                <i class="bi bi-file-earmark-spreadsheet-fill"></i> View Sample Files
+            </button>
         </div>
     </nav>
     
-    <div class="container text-end mb-4">
-        <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSamples" aria-controls="offcanvasSamples">
-            <i class="bi bi-file-earmark-spreadsheet-fill"></i> View Sample Files
-        </button>
-    </div>
-
-    <div class="container pb-5">
+    <div class="container-fluid px-4 pb-5">
       <form id="main-form">
-        <div class="card mb-4">
-            <div class="card-header"><i class="bi bi-1-circle-fill"></i>  Upload Source File</div>
-            <div class="card-body">
-                <p class="card-text text-muted">The main file to search within (e.g., master product list).</p>
-                <input class="form-control" type="file" id="fileInputSource" accept=".xlsx">
-                <div id="sourcePreview" class="mt-3"></div>
-            </div>
-        </div>
-        
-        <div class="card mb-4">
-            <div class="card-header"><i class="bi bi-2-circle-fill"></i>  Upload Lookup File</div>
-            <div class="card-body">
-                <p class="card-text text-muted">The file containing the list of values to find (e.g., a list of SKUs).</p>
-                <input class="form-control" type="file" id="fileInputLookup" accept=".xlsx">
-                <div id="lookupPreview" class="mt-3"></div>
-            </div>
-        </div>
+        <div class="row g-4">
 
-        <div class="card mb-4">
-            <div class="card-header"><i class="bi bi-3-circle-fill"></i>  Define Search & Output Parameters</div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <label for="lookupValueColumn" class="form-label fw-bold">Column with values to find <span class="text-muted">(from Lookup File)</span></label>
-                        <input type="text" class="form-control" id="lookupValueColumn" placeholder="e.g., 'A' or '1'">
+            <!-- ===== COLUMN 1: UPLOAD ===== -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header collapsible-header" data-bs-toggle="collapse" data-bs-target="#uploadBody" aria-expanded="true" aria-controls="uploadBody">
+                        <span><i class="bi bi-1-circle-fill"></i>  Upload Files</span>
+                        <i class="bi bi-chevron-down btn-toggle-icon"></i>
                     </div>
-                    <div class="col-md-6">
-                        <label for="lookupColumn" class="form-label fw-bold">Column to search in <span class="text-muted">(from Source File)</span></label>
-                        <input type="text" class="form-control" id="lookupColumn" placeholder="e.g., 'A' or '1'">
-                    </div>
-                    <div class="col-md-6">
-                        <label for="returnColumn" class="form-label fw-bold">Columns to return <span class="text-muted">(from Source File)</span></label>
-                        <input type="text" class="form-control" id="returnColumn" placeholder="e.g., B, D-F, H">
+                    <div class="collapse show" id="uploadBody">
+                        <div class="card-body">
+                            <h6 class="fw-bold">Source File</h6>
+                            <p class="card-text text-muted small">The main file to search within (e.g., master product list).</p>
+                            <input class="form-control" type="file" id="fileInputSource" accept=".xlsx">
+                            <div id="sourcePreview" class="mt-3"></div>
+                            
+                            <hr class="my-4">
+
+                            <h6 class="fw-bold">Lookup File</h6>
+                            <p class="card-text text-muted small">The file containing values to find (e.g., a list of SKUs).</p>
+                            <input class="form-control" type="file" id="fileInputLookup" accept=".xlsx">
+                            <div id="lookupPreview" class="mt-3"></div>
+                        </div>
                     </div>
                 </div>
-                 <div class="form-text mb-3">Tip: Return multiple columns using commas (B,D) and ranges (B-E).</div>
-                 <div class="form-check form-switch mb-3">
-                    <input class="form-check-input" type="checkbox" role="switch" id="includeAllLookupColsCheckbox" checked>
-                    <label class="form-check-label" for="includeAllLookupColsCheckbox">Include all original columns from lookup file</label>
-                 </div>
-                 <div class="mb-2">
-                     <label for="matchFilterMode" class="form-label">Result Filtering</label>
-                     <select class="form-select" id="matchFilterMode">
-                         <option value="found" selected>Show only matched rows</option>
-                         <option value="notfound">Show only rows that were not found</option>
-                         <option value="all">Show all rows (matches and non-matches)</option>
-                     </select>
-                 </div>
             </div>
-        </div>
-        
-        <div class="card mb-4">
-            <div class="card-header collapsible-header" data-bs-toggle="collapse" data-bs-target="#dataCleaningBody" aria-expanded="false" aria-controls="dataCleaningBody">
-                <span><i class="bi bi-magic"></i>  Data Cleaning Options</span>
-                <i class="bi bi-chevron-down btn-toggle-icon"></i>
-            </div>
-            <div class="collapse" id="dataCleaningBody">
-                <div class="card-body">
-                     <p class="card-text text-muted">Apply these options to the lookup columns to increase match success.</p>
-                     <div class="form-check form-switch mb-2">
-                        <input class="form-check-input" type="checkbox" role="switch" id="trimWhitespaceCheckbox">
-                        <label class="form-check-label" for="trimWhitespaceCheckbox">Trim leading/trailing whitespace</label>
-                     </div>
-                     <div class="form-check form-switch mb-2">
-                        <input class="form-check-input" type="checkbox" role="switch" id="ignoreSpecialCharsCheckbox">
-                        <label class="form-check-label" for="ignoreSpecialCharsCheckbox">Ignore special characters (e.g., match 'A-1' with 'A1')</label>
-                     </div>
-                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="caseSensitiveCheckbox">
-                        <label class="form-check-label" for="caseSensitiveCheckbox">Perform case-sensitive matching</label>
-                     </div>
+
+            <!-- ===== COLUMN 2: PARAMETERS & ACTION ===== -->
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                     <div class="card-header collapsible-header" data-bs-toggle="collapse" data-bs-target="#parametersBody" aria-expanded="true" aria-controls="parametersBody">
+                        <span><i class="bi bi-2-circle-fill"></i>  Define Search & Output</span>
+                        <i class="bi bi-chevron-down btn-toggle-icon"></i>
+                    </div>
+                    <div class="collapse show" id="parametersBody">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="lookupValueColumn" class="form-label fw-bold">Column with values to find <span class="text-muted small">(from Lookup File)</span></label>
+                                <input type="text" class="form-control" id="lookupValueColumn" placeholder="e.g., 'A' or '1'">
+                            </div>
+                            <div class="mb-3">
+                                <label for="lookupColumn" class="form-label fw-bold">Column to search in <span class="text-muted small">(from Source File)</span></label>
+                                <input type="text" class="form-control" id="lookupColumn" placeholder="e.g., 'A' or '1'">
+                            </div>
+                            <div class="mb-3">
+                                <label for="returnColumn" class="form-label fw-bold">Columns to return <span class="text-muted small">(from Source File)</span></label>
+                                <input type="text" class="form-control" id="returnColumn" placeholder="e.g., B, D-F, H">
+                                <div class="form-text">Tip: Use commas (B,D) and ranges (B-E).</div>
+                            </div>
+                             <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" role="switch" id="includeAllLookupColsCheckbox" checked>
+                                <label class="form-check-label" for="includeAllLookupColsCheckbox">Include all original columns from lookup file</label>
+                             </div>
+                             <div>
+                                 <label for="matchFilterMode" class="form-label">Result Filtering</label>
+                                 <select class="form-select" id="matchFilterMode">
+                                     <option value="found" selected>Show only matched rows</option>
+                                     <option value="notfound">Show only rows that were not found</option>
+                                     <option value="all">Show all rows (matches and non-matches)</option>
+                                 </select>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header collapsible-header" data-bs-toggle="collapse" data-bs-target="#dataCleaningBody" aria-expanded="false" aria-controls="dataCleaningBody">
+                        <span><i class="bi bi-magic"></i>  Data Cleaning Options</span>
+                        <i class="bi bi-chevron-down btn-toggle-icon"></i>
+                    </div>
+                    <div class="collapse" id="dataCleaningBody">
+                        <div class="card-body">
+                             <p class="card-text text-muted">Apply these options to the lookup columns to increase match success.</p>
+                             <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" role="switch" id="trimWhitespaceCheckbox">
+                                <label class="form-check-label" for="trimWhitespaceCheckbox">Trim leading/trailing whitespace</label>
+                             </div>
+                             <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" role="switch" id="ignoreSpecialCharsCheckbox">
+                                <label class="form-check-label" for="ignoreSpecialCharsCheckbox">Ignore special characters (e.g., match 'A-1' with 'A1')</label>
+                             </div>
+                             <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="caseSensitiveCheckbox">
+                                <label class="form-check-label" for="caseSensitiveCheckbox">Perform case-sensitive matching</label>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button id="vlookupBtn" type="button" class="btn btn-primary btn-lg px-5">
+                        <span id="btn-text"><i class="bi bi-search"></i> Perform VLOOKUP</span>
+                        <span id="btn-spinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                    </button>
                 </div>
             </div>
-        </div>
+            
+            <!-- ===== COLUMN 3: RESULTS (Initially hidden) ===== -->
+            <div class="col-lg-4" id="results-column" style="display: none;">
+                <div id="result-card" class="card">
+                     <div class="card-header collapsible-header" data-bs-toggle="collapse" data-bs-target="#resultsBody" aria-expanded="true" aria-controls="resultsBody">
+                        <span><i class="bi bi-check-circle-fill"></i>  Result</span>
+                        <i class="bi bi-chevron-down btn-toggle-icon"></i>
+                    </div>
+                    <div class="collapse show" id="resultsBody">
+                        <div id="output" class="card-body">
+                            <!-- Results table will be rendered here -->
+                        </div>
+                        <div class="card-footer bg-white text-center py-3">
+                             <button id="downloadResultsBtn" class="btn btn-light" style="display: none;"><i class="bi bi-file-earmark-arrow-down-fill"></i> Download Enriched Results (CSV)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <div class="text-center mb-4">
-            <button id="vlookupBtn" type="button" class="btn btn-primary btn-lg px-5">
-                <span id="btn-text"><i class="bi bi-search"></i> Perform VLOOKUP</span>
-                <span id="btn-spinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
-            </button>
         </div>
       </form>
-        <div id="result-card" class="card">
-             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-check-circle-fill"></i>  Result</span>
-                <button id="downloadResultsBtn" class="btn btn-sm btn-light" style="display: none;"><i class="bi bi-file-earmark-arrow-down-fill"></i> Download Enriched Results (CSV)</button>
-            </div>
-            <div id="output" class="card-body"></div>
-        </div>
     </div>
     
     <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasSamples" aria-labelledby="offcanvasSamplesLabel">
+        <!-- Offcanvas content remains the same -->
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="offcanvasSamplesLabel"><i class="bi bi-info-circle-fill"></i> Sample Files Guide</h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>

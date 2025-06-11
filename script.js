@@ -4,12 +4,14 @@ window.onload = function() {
     document.getElementById('fileInputLookup').value = '';
     document.getElementById('sourcePreview').innerHTML = '';
     document.getElementById('lookupPreview').innerHTML = '';
+    document.getElementById('results-column').style.display = 'none';
 };
 
 const vlookupBtn = document.getElementById('vlookupBtn');
 const sourceFileInput = document.getElementById('fileInputSource');
 const lookupFileInput = document.getElementById('fileInputLookup');
 const downloadResultsBtn = document.getElementById('downloadResultsBtn');
+const resultsColumn = document.getElementById('results-column');
 
 let enrichedResults = [], cachedSourceData = [], cachedLookupData = [];
 
@@ -50,6 +52,9 @@ function parseColumnRangeInput(input) {
 
 async function handleFileUpload(file, cacheTarget, previewContainerId) {
     const container = document.getElementById(previewContainerId);
+    // Hide results when a new file is selected to avoid showing stale data
+    resultsColumn.style.display = 'none';
+
     if (!file) {
         if (cacheTarget === 'source') cachedSourceData = [];
         else cachedLookupData = [];
@@ -240,7 +245,6 @@ vlookupBtn.addEventListener('click', async () => {
 });
 
 function displayResultsTable(data, processedCount) {
-    const resultCard = document.getElementById('result-card');
     const outputDiv = document.getElementById('output');
     const headers = data[0];
     const body = data.slice(1);
@@ -260,7 +264,7 @@ function displayResultsTable(data, processedCount) {
             break;
     }
     
-    outputDiv.innerHTML = `<p class="text-muted">${message}</p>
+    outputDiv.innerHTML = `<p class="text-muted px-3 pt-3">${message}</p>
         <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
             <table class="table table-striped table-hover table-sm">
                 <thead class="table-dark" style="position: sticky; top: 0;">
@@ -272,7 +276,7 @@ function displayResultsTable(data, processedCount) {
             </table>
         </div>`;
     
-    resultCard.style.display = 'block';
+    resultsColumn.style.display = 'block';
     downloadResultsBtn.style.display = data.length > 1 ? 'inline-block' : 'none';
 }
 
@@ -283,10 +287,9 @@ function setLoading(isLoading) {
 }
 
 function displayMessage(message, type) {
-    const resultCard = document.getElementById('result-card');
     const outputDiv = document.getElementById('output');
-    outputDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-    resultCard.style.display = 'block';
+    outputDiv.innerHTML = `<div class="alert alert-${type} m-3">${message}</div>`;
+    resultsColumn.style.display = 'block';
     downloadResultsBtn.style.display = 'none';
 }
 
