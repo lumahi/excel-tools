@@ -30,7 +30,57 @@ body {
     border-radius: .375rem;
     margin-top: 0.5rem;
 }
-.preview-container table { margin-bottom: 0; }
+
+.preview-container table {
+    margin-bottom: 0;
+    border-collapse: separate; /* Important for sticky headers */
+    border-spacing: 0;
+}
+
+.preview-container th, .preview-container td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 120px;
+    max-width: 300px;
+    font-size: 0.85rem; /* Slightly smaller text for better fit */
+}
+
+.preview-container .sticky-col-header,
+.preview-container .sticky-row-header {
+    background-color: #e9ecef; /* Darker gray for better contrast */
+    color: #212529; /* Explicitly set dark text color */
+    font-weight: bold;
+    text-align: center;
+}
+
+.preview-container .sticky-col-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.preview-container .sticky-row-header {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+}
+
+.preview-container .sticky-top-left {
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 20; /* Highest z-index */
+    background-color: #dee2e6; /* Even darker for the corner */
+    color: #212529; /* Explicitly set dark text color */
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+}
+
 .preview-controls input {
     width: 60px;
 }

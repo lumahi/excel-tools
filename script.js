@@ -71,6 +71,16 @@ async function handleFileUpload(file, cacheTarget, previewContainerId) {
     }
 }
 
+function colIndexToLetter(index) {
+    let letter = '';
+    while (index >= 0) {
+        letter = String.fromCharCode(index % 26 + 65) + letter;
+        index = Math.floor(index / 26) - 1;
+    }
+    return letter;
+}
+
+
 function renderPreview(data, containerId, options) {
     const { rows, cols, auto } = options;
     const container = document.getElementById(containerId);
@@ -100,27 +110,32 @@ function renderPreview(data, containerId, options) {
         previewData.push(Array(numCols).fill(undefined));
     }
 
-    const headers = previewData[0] || [];
-    const body = previewData.slice(1);
-
     const controlsHTML = `
         <div class="d-flex align-items-center gap-2 mt-3 preview-controls">
             <label for="${containerId}-rows" class="form-label mb-0 small">Preview:</label>
             <input type="number" class="form-control form-control-sm" id="${containerId}-rows" value="${auto ? numRows : rows}" min="1" ${auto ? 'disabled' : ''}>
             <span class="text-muted">x</span>
             <input type="number" class="form-control form-control-sm" id="${containerId}-cols" value="${auto ? numCols : cols}" min="1" ${auto ? 'disabled' : ''}>
-            <div class="form-check form-check-inline ms-2">
+            <div class="form-check form-check-inline ms-auto">
                 <input class="form-check-input" type="checkbox" id="${containerId}-autoresize" ${auto ? 'checked' : ''}>
                 <label class="form-check-label small" for="${containerId}-autoresize">Auto-size</label>
             </div>
         </div>
         <p class="text-muted small fst-italic mt-1">This is a cosmetic preview and does not affect the final VLOOKUP results.</p>`;
     
+    // Column Headers (A, B, C...)
+    let colHeaderHTML = `<tr><th class="sticky-top-left"></th>`;
+    for (let i = 0; i < numCols; i++) colHeaderHTML += `<th class="sticky-col-header">${colIndexToLetter(i)}</th>`;
+    colHeaderHTML += '</tr>';
+
+    // Table Body (Row numbers + data)
+    let tableBodyHTML = previewData.map((row, i) => `<tr><th class="sticky-row-header">${i + 1}</th>${(row || []).map(cell => `<td>${cell ?? ''}</td>`).join('')}</tr>`).join('');
+
     const tableHTML = `
         <div class="preview-container">
             <table class="table table-bordered table-sm">
-                <thead class="table-light"><tr>${headers.map(h => `<th>${h ?? ''}</th>`).join('')}</tr></thead>
-                <tbody>${body.map(row => `<tr>${(row || []).map(cell => `<td>${cell ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+                <thead class="table-light">${colHeaderHTML}</thead>
+                <tbody>${tableBodyHTML}</tbody>
             </table>
         </div>`;
 
