@@ -1,10 +1,5 @@
 window.onload = function() {
-    document.getElementById('main-form').reset();
-    document.getElementById('fileInputSource').value = '';
-    document.getElementById('fileInputLookup').value = '';
-    document.getElementById('sourcePreview').innerHTML = '';
-    document.getElementById('lookupPreview').innerHTML = '';
-    document.getElementById('results-column').style.display = 'none';
+    resetApplicationState();
 };
 
 const vlookupBtn = document.getElementById('vlookupBtn');
@@ -12,6 +7,7 @@ const sourceFileInput = document.getElementById('fileInputSource');
 const lookupFileInput = document.getElementById('fileInputLookup');
 const downloadResultsBtn = document.getElementById('downloadResultsBtn');
 const resultsColumn = document.getElementById('results-column');
+const resetAppBtn = document.getElementById('resetAppBtn');
 
 let enrichedResults = [], cachedSourceData = [], cachedLookupData = [];
 
@@ -398,6 +394,28 @@ function downloadSample(data, fileName) {
     XLSX.writeFile(wb, fileName);
 }
 
+function resetApplicationState() {
+    // 1. Clear the in-memory data arrays
+    enrichedResults = [];
+    cachedSourceData = [];
+    cachedLookupData = [];
+
+    // 2. Reset the main form to its default values
+    document.getElementById('main-form').reset();
+
+    // 3. Clear the file input elements themselves
+    sourceFileInput.value = '';
+    lookupFileInput.value = '';
+
+    // 4. Clear the preview and result areas from the DOM
+    document.getElementById('sourcePreview').innerHTML = '';
+    document.getElementById('lookupPreview').innerHTML = '';
+    document.getElementById('output').innerHTML = '';
+    resultsColumn.style.display = 'none';
+    
+    console.log("Application state has been reset.");
+}
+
 document.getElementById('downloadSourceStandardBtn').addEventListener('click', () => {
      const { sourceData } = generateSampleData(20, false);
      downloadSample(sourceData, 'sample_source_standard.xlsx');
@@ -417,3 +435,5 @@ document.getElementById('downloadLookupPerfectBtn').addEventListener('click', ()
      const { lookupData } = generateSampleData(20, true);
      downloadSample(lookupData, 'sample_lookup_perfect.xlsx');
 });
+
+resetAppBtn.addEventListener('click', resetApplicationState);
