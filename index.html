@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced VLOOKUP Tool</title>
+    
+    <!-- Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to right top, #f4f7f6, #dff1f4, #ccecf7, #bce7fa, #b2e1ff);
+            min-height: 100vh;
+        }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .container { max-width: 800px; }
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,.1);
+        }
+        .card-header {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: 500;
+            border-top-left-radius: 0.75rem;
+            border-top-right-radius: 0.75rem;
+        }
+        .btn-primary { background-color: #0d6efd; border: none; }
+        .btn-primary:hover { background-color: #0a58ca; }
+        .btn-secondary { background-color: #6c757d; border: none; }
+        #result-card { display: none; }
+        .spinner-border-sm { margin-right: 5px; }
+        .form-check-input:checked { background-color: #0d6efd; border-color: #0d6efd; }
+        .preview-container {
+            max-height: 250px;
+            overflow: auto;
+            border: 1px solid #dee2e6;
+            border-radius: .375rem;
+            margin-top: 0.5rem;
+        }
+        .preview-container table { margin-bottom: 0; }
+        .preview-controls input {
+            width: 60px;
+        }
+        .collapsible-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .collapsible-header .btn-toggle-icon {
+            color: rgba(255, 255, 255, 0.8);
+            transition: transform 0.2s ease-in-out;
+        }
+        .collapsible-header[aria-expanded="false"] .btn-toggle-icon {
+            transform: rotate(-90deg);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-white mb-5">
+        <div class="container-fluid" style="max-width: 800px;">
+            <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-tools"></i> Advanced VLOOKUP Tool</a>
+        </div>
+    </nav>
+    
+    <div class="container text-end mb-4">
+        <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSamples" aria-controls="offcanvasSamples">
+            <i class="bi bi-file-earmark-spreadsheet-fill"></i> View Sample Files
+        </button>
+    </div>
+
+    <div class="container pb-5">
+      <form id="main-form">
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-1-circle-fill"></i>  Upload Source File</div>
+            <div class="card-body">
+                <p class="card-text text-muted">The main file to search within (e.g., master product list).</p>
+                <input class="form-control" type="file" id="fileInputSource" accept=".xlsx">
+                <div id="sourcePreview" class="mt-3"></div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-2-circle-fill"></i>  Upload Lookup File</div>
+            <div class="card-body">
+                <p class="card-text text-muted">The file containing the list of values to find (e.g., a list of SKUs).</p>
+                <input class="form-control" type="file" id="fileInputLookup" accept=".xlsx">
+                <div id="lookupPreview" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-3-circle-fill"></i>  Define Search & Output Parameters</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label for="lookupValueColumn" class="form-label fw-bold">Column with values to find <span class="text-muted">(from Lookup File)</span></label>
+                        <input type="text" class="form-control" id="lookupValueColumn" placeholder="e.g., 'A' or '1'">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="lookupColumn" class="form-label fw-bold">Column to search in <span class="text-muted">(from Source File)</span></label>
+                        <input type="text" class="form-control" id="lookupColumn" placeholder="e.g., 'A' or '1'">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="returnColumn" class="form-label fw-bold">Columns to return <span class="text-muted">(from Source File)</span></label>
+                        <input type="text" class="form-control" id="returnColumn" placeholder="e.g., B, D-F, H">
+                    </div>
+                </div>
+                 <div class="form-text mb-3">Tip: Return multiple columns using commas (B,D) and ranges (B-E).</div>
+                 <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" role="switch" id="includeAllLookupColsCheckbox" checked>
+                    <label class="form-check-label" for="includeAllLookupColsCheckbox">Include all original columns from lookup file</label>
+                 </div>
+                 <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="excludeNotFoundCheckbox" checked>
+                    <label class="form-check-label" for="excludeNotFoundCheckbox">Exclude rows if no match is found</label>
+                 </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header collapsible-header" data-bs-toggle="collapse" data-bs-target="#dataCleaningBody" aria-expanded="false" aria-controls="dataCleaningBody">
+                <span><i class="bi bi-magic"></i>  Data Cleaning Options</span>
+                <i class="bi bi-chevron-down btn-toggle-icon"></i>
+            </div>
+            <div class="collapse" id="dataCleaningBody">
+                <div class="card-body">
+                     <p class="card-text text-muted">Apply these options to the lookup columns to increase match success.</p>
+                     <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" role="switch" id="trimWhitespaceCheckbox">
+                        <label class="form-check-label" for="trimWhitespaceCheckbox">Trim leading/trailing whitespace</label>
+                     </div>
+                     <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" role="switch" id="ignoreSpecialCharsCheckbox">
+                        <label class="form-check-label" for="ignoreSpecialCharsCheckbox">Ignore special characters (e.g., match 'A-1' with 'A1')</label>
+                     </div>
+                     <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="caseSensitiveCheckbox">
+                        <label class="form-check-label" for="caseSensitiveCheckbox">Perform case-sensitive matching</label>
+                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mb-4">
+            <button id="vlookupBtn" type="button" class="btn btn-primary btn-lg px-5">
+                <span id="btn-text"><i class="bi bi-search"></i> Perform VLOOKUP</span>
+                <span id="btn-spinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+            </button>
+        </div>
+      </form>
+        <div id="result-card" class="card">
+             <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-check-circle-fill"></i>  Result</span>
+                <button id="downloadResultsBtn" class="btn btn-sm btn-light" style="display: none;"><i class="bi bi-file-earmark-arrow-down-fill"></i> Download Enriched Results (CSV)</button>
+            </div>
+            <div id="output" class="card-body"></div>
+        </div>
+    </div>
+    
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasSamples" aria-labelledby="offcanvasSamplesLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="offcanvasSamplesLabel"><i class="bi bi-info-circle-fill"></i> Sample Files Guide</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <p>Use these files to test the tool's core functionality. The source file now contains blank cells and a blank row to demonstrate the interactive preview.</p>
+            <hr>
+            <h6>Source File</h6>
+            <p class="text-muted small">This is the large dataset you want to search within. It includes intentional blank spots.</p>
+            <button id="downloadSourceFileBtn" class="btn btn-secondary w-100 mb-4"><i class="bi bi-download"></i> Download Sample Source</button>
+            <h6>Lookup File</h6>
+            <p class="text-muted small">This is the smaller list of values you want to find. Product IDs match the source file format.</p>
+            <button id="downloadLookupFileBtn" class="btn btn-secondary w-100"><i class="bi bi-download"></i> Download Sample Lookup</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        window.onload = function() {
+            document.getElementById('main-form').reset();
+            document.getElementById('fileInputSource').value = '';
+            document.getElementById('fileInputLookup').value = '';
+            document.getElementById('sourcePreview').innerHTML = '';
+            document.getElementById('lookupPreview').innerHTML = '';
+        };
+        
+        const vlookupBtn = document.getElementById('vlookupBtn');
+        const sourceFileInput = document.getElementById('fileInputSource');
+        const lookupFileInput = document.getElementById('fileInputLookup');
+        const downloadResultsBtn = document.getElementById('downloadResultsBtn');
+        
+        let enrichedResults = [], cachedSourceData = [], cachedLookupData = [];
+
+        function parseSingleColumn(input) {
+            if (!input) return NaN;
+            const part = input.trim().toUpperCase();
+            if (!isNaN(parseInt(part))) {
+                const colIndex = parseInt(part, 10) - 1;
+                return colIndex >= 0 ? colIndex : NaN;
+            }
+            if (/^[A-Z]+$/.test(part)) {
+                return part.split('').reduce((acc, char) => (acc * 26) + char.charCodeAt(0) - 64, 0) - 1;
+            }
+            return NaN;
+        }
+        
+        function parseColumnRangeInput(input) {
+            if (!input) return [];
+            const indices = new Set();
+            const parts = input.split(',');
+            for (const part of parts) {
+                const trimmedPart = part.trim();
+                if (trimmedPart.includes('-')) {
+                    const [startStr, endStr] = trimmedPart.split('-');
+                    const start = parseSingleColumn(startStr);
+                    const end = parseSingleColumn(endStr);
+                    if (!isNaN(start) && !isNaN(end) && end >= start) {
+                        for (let i = start; i <= end; i++) indices.add(i);
+                    } else return [NaN];
+                } else {
+                    const index = parseSingleColumn(trimmedPart);
+                    if (!isNaN(index)) indices.add(index);
+                    else return [NaN];
+                }
+            }
+            return Array.from(indices).sort((a, b) => a - b);
+        }
+
+        async function handleFileUpload(file, cacheTarget, previewContainerId) {
+            const container = document.getElementById(previewContainerId);
+            if (!file) {
+                if (cacheTarget === 'source') cachedSourceData = [];
+                else cachedLookupData = [];
+                container.innerHTML = '';
+                return;
+            }
+            try {
+                const data = await readFile(file);
+                if (cacheTarget === 'source') cachedSourceData = data;
+                else cachedLookupData = data;
+                renderPreview(data, previewContainerId, 5, 5);
+            } catch (err) {
+                container.innerHTML = `<div class="alert alert-danger">Error reading file.</div>`;
+            }
+        }
+        
+        function renderPreview(data, containerId, rows, cols) {
+            const container = document.getElementById(containerId);
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="alert alert-light">File is empty.</div>';
+                return;
+            }
+            
+            const numRows = Math.max(1, rows);
+            const numCols = Math.max(1, cols);
+            
+            let previewData = data.slice(0, numRows + 1).map(row => {
+                const newRow = (row || []).slice(0, numCols);
+                while(newRow.length < numCols) {
+                    newRow.push(undefined);
+                }
+                return newRow;
+            });
+
+            const headers = previewData[0] || [];
+            const body = previewData.slice(1);
+
+            const controlsHTML = `
+                <div class="d-flex align-items-center gap-2 mt-3 preview-controls">
+                    <label for="${containerId}-rows" class="form-label mb-0 small">Preview:</label>
+                    <input type="number" class="form-control form-control-sm" id="${containerId}-rows" value="${rows}" min="1">
+                    <span class="text-muted">x</span>
+                    <input type="number" class="form-control form-control-sm" id="${containerId}-cols" value="${cols}" min="1">
+                </div>
+                <p class="text-muted small fst-italic mt-1">This is a cosmetic preview and does not affect the final VLOOKUP results.</p>`;
+            
+            const tableHTML = `
+                <div class="preview-container">
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light"><tr>${headers.map(h => `<th>${h ?? ''}</th>`).join('')}</tr></thead>
+                        <tbody>${body.map(row => `<tr>${(row || []).map(cell => `<td>${cell ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+                    </table>
+                </div>`;
+
+            container.innerHTML = controlsHTML + tableHTML;
+            
+            const dataCache = containerId.startsWith('source') ? cachedSourceData : cachedLookupData;
+            document.getElementById(`${containerId}-rows`).addEventListener('change', (e) => renderPreview(dataCache, containerId, parseInt(e.target.value), parseInt(document.getElementById(`${containerId}-cols`).value)));
+            document.getElementById(`${containerId}-cols`).addEventListener('change', (e) => renderPreview(dataCache, containerId, parseInt(document.getElementById(`${containerId}-rows`).value), parseInt(e.target.value)));
+        }
+
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        // ** THE FIX IS HERE: `blankrows: true` tells the parser to keep empty rows. **
+                        resolve(XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { header: 1, blankrows: true, defval: null }));
+                    } catch (err) { reject(err); }
+                };
+                reader.onerror = err => reject(err);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        function cleanValue(value, options) {
+            if (value === undefined || value === null) return value;
+            let strValue = String(value);
+            if (options.trim) strValue = strValue.trim();
+            if (options.ignoreSpecial) strValue = strValue.replace(/[^a-zA-Z0-9]/g, '');
+            if (!options.caseSensitive) strValue = strValue.toLowerCase();
+            return strValue;
+        }
+
+        function handleLookup(sourceData, lookupData) {
+            const lookupValueCol = parseSingleColumn(document.getElementById('lookupValueColumn').value);
+            const lookupCol = parseSingleColumn(document.getElementById('lookupColumn').value);
+            const returnCols = parseColumnRangeInput(document.getElementById('returnColumn').value);
+            const cleaningOptions = {
+                trim: document.getElementById('trimWhitespaceCheckbox').checked,
+                ignoreSpecial: document.getElementById('ignoreSpecialCharsCheckbox').checked,
+                caseSensitive: document.getElementById('caseSensitiveCheckbox').checked,
+            };
+            const outputOptions = {
+                excludeNotFound: document.getElementById('excludeNotFoundCheckbox').checked,
+                includeAllLookupCols: document.getElementById('includeAllLookupColsCheckbox').checked,
+            };
+
+            if (isNaN(lookupValueCol) || isNaN(lookupCol) || returnCols.some(isNaN)) {
+                displayMessage('Please provide valid column identifiers for all fields. Check for errors in your column ranges.', 'danger');
+                return;
+            }
+
+            const lookupMap = new Map();
+            const sourceHeaders = sourceData[0] || [];
+            for (const row of sourceData.slice(1)) {
+                 if (!row || row.length === 0) continue; 
+                const key = cleanValue(row[lookupCol], cleaningOptions);
+                if (key !== undefined && key !== null && key !== '') {
+                    if (!lookupMap.has(key)) lookupMap.set(key, row);
+                }
+            }
+            
+            const lookupHeaders = lookupData[0] || [];
+            const returnHeaders = returnCols.map(c => sourceHeaders[c] || `Column ${String.fromCharCode(65 + c)}`);
+            const finalHeaders = outputOptions.includeAllLookupCols
+                ? [...lookupHeaders, ...returnHeaders]
+                : [lookupHeaders[lookupValueCol] || `Column ${String.fromCharCode(65 + lookupValueCol)}`, ...returnHeaders];
+            
+            enrichedResults = [finalHeaders];
+            let recordsProcessed = 0;
+            for (const row of lookupData.slice(1)) {
+                if (!row || row.length === 0) continue;
+                recordsProcessed++;
+                const originalValue = row[lookupValueCol];
+                const cleanedValue = cleanValue(originalValue, cleaningOptions);
+                const matchedRow = (cleanedValue !== undefined && cleanedValue !== null) ? lookupMap.get(cleanedValue) : undefined;
+
+                if (matchedRow) {
+                    const baseRow = outputOptions.includeAllLookupCols ? [...row] : [originalValue];
+                    const foundValues = returnCols.map(c => matchedRow[c] ?? '');
+                    enrichedResults.push([...baseRow, ...foundValues]);
+                } else if (!outputOptions.excludeNotFound) {
+                    const baseRow = outputOptions.includeAllLookupCols ? [...row] : [originalValue];
+                    enrichedResults.push([...baseRow, ...Array(returnCols.length).fill('Not Found')]);
+                }
+            }
+            
+            displayResultsTable(enrichedResults, recordsProcessed);
+        }
+        
+        vlookupBtn.addEventListener('click', async () => {
+            if (!cachedSourceData.length || !cachedLookupData.length) {
+                displayMessage('Please upload both a Source File and a Lookup File.', 'danger');
+                return;
+            }
+            setLoading(true);
+            try {
+                handleLookup(cachedSourceData, cachedLookupData);
+            } catch (err) {
+                console.error(err);
+                displayMessage('An error occurred while processing the files.', 'danger');
+            } finally {
+                setLoading(false);
+            }
+        });
+        
+        function displayResultsTable(data, processedCount) {
+            const resultCard = document.getElementById('result-card');
+            const outputDiv = document.getElementById('output');
+            const headers = data[0];
+            const body = data.slice(1);
+            const message = document.getElementById('excludeNotFoundCheckbox').checked
+                ? `${body.length} of ${processedCount} records from lookup file resulted in a match.`
+                : `${processedCount} records from lookup file were processed.`;
+            
+            outputDiv.innerHTML = `<p class="text-muted">${message}</p>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-striped table-hover table-sm">
+                        <thead class="table-dark" style="position: sticky; top: 0;">
+                            <tr>${headers.map(h => `<th>${h ?? ''}</th>`).join('')}</tr>
+                        </thead>
+                        <tbody>
+                            ${body.map(row => `<tr>${(row || []).map(cell => `<td>${cell ?? ''}</td>`).join('')}</tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>`;
+            
+            resultCard.style.display = 'block';
+            downloadResultsBtn.style.display = data.length > 1 ? 'inline-block' : 'none';
+        }
+        
+        function setLoading(isLoading) {
+            document.getElementById('btn-text').style.display = isLoading ? 'none' : 'inline-block';
+            document.getElementById('btn-spinner').style.display = isLoading ? 'inline-block' : 'none';
+            vlookupBtn.disabled = isLoading;
+        }
+
+        function displayMessage(message, type) {
+            const resultCard = document.getElementById('result-card');
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            resultCard.style.display = 'block';
+            downloadResultsBtn.style.display = 'none';
+        }
+        
+        function downloadCSV() {
+             let csvContent = 'data:text/csv;charset=utf-8,';
+             enrichedResults.forEach(rowArray => {
+                let row = rowArray.map(cell => {
+                    const cellStr = (cell === null || cell === undefined) ? '' : String(cell);
+                    return cellStr.includes(',') ? `"${cellStr.replace(/"/g, '""')}"` : cellStr;
+                }).join(',');
+                csvContent += row + '\r\n';
+            });
+            const link = document.createElement('a');
+            link.setAttribute('href', encodeURI(csvContent));
+            link.setAttribute('download', 'enriched_results.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        sourceFileInput.addEventListener('change', e => handleFileUpload(e.target.files[0], 'source', 'sourcePreview'));
+        lookupFileInput.addEventListener('change', e => handleFileUpload(e.target.files[0], 'lookup', 'lookupPreview'));
+        downloadResultsBtn.addEventListener('click', downloadCSV);
+
+        document.getElementById('downloadSourceFileBtn').addEventListener('click', () => {
+             const data = [
+                ["ID", "Product Name", "Category", "Unit Price", "Stock Level", "Supplier", "Date Added"],
+                ["PROD-001", "Laptop Pro 15", "Electronics", 1200, 50, "TechCorp", "2023-01-15"],
+                ["PROD-002", "Wireless Mouse", "Accessories", 25, 300, "ClickFast", "2023-02-20"],
+                [], // Intentionally blank row for preview testing
+                ["PROD-003", "Mechanical Keyboard", "Accessories", 80, 150, "ClickFast", "2023-02-22"],
+                ["PROD-004", "4K Monitor 27", "Electronics", 350, 75, "ViewBright", "2023-03-10"],
+                ["PROD-005", "USB-C Hub", "Accessories", 45, 200, null, "2023-04-01"] // Intentionally blank cell
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "SourceData");
+            XLSX.writeFile(wb, "sample_source_data_with_blanks.xlsx");
+        });
+        
+        document.getElementById('downloadLookupFileBtn').addEventListener('click', () => {
+             const data = [
+                ["ProductID", "Quantity Needed", "Urgency"],
+                ["PROD-003", 10, "High"],
+                ["PROD-001", 5, "Medium"],
+                ["PROD-999", 2, "Low"], 
+                ["PROD-004", 8, "High"]
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "LookupData");
+            XLSX.writeFile(wb, "sample_lookup_data_perfect.xlsx");
+        });
+    </script>
+</body>
+</html>
