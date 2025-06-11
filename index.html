@@ -115,13 +115,17 @@
                     </div>
                 </div>
                  <div class="form-text mb-3">Tip: Return multiple columns using commas (B,D) and ranges (B-E).</div>
-                 <div class="form-check form-switch mb-2">
+                 <div class="form-check form-switch mb-3">
                     <input class="form-check-input" type="checkbox" role="switch" id="includeAllLookupColsCheckbox" checked>
                     <label class="form-check-label" for="includeAllLookupColsCheckbox">Include all original columns from lookup file</label>
                  </div>
-                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" id="excludeNotFoundCheckbox" checked>
-                    <label class="form-check-label" for="excludeNotFoundCheckbox">Exclude rows if no match is found</label>
+                 <div class="mb-2">
+                     <label for="matchFilterMode" class="form-label">Result Filtering</label>
+                     <select class="form-select" id="matchFilterMode">
+                         <option value="found" selected>Show only matched rows</option>
+                         <option value="notfound">Show only rows that were not found</option>
+                         <option value="all">Show all rows (matches and non-matches)</option>
+                     </select>
                  </div>
             </div>
         </div>
@@ -306,7 +310,6 @@
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, { type: 'array' });
                         const firstSheetName = workbook.SheetNames[0];
-                        // ** THE FIX IS HERE: `blankrows: true` tells the parser to keep empty rows. **
                         resolve(XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { header: 1, blankrows: true, defval: null }));
                     } catch (err) { reject(err); }
                 };
@@ -334,9 +337,9 @@
                 caseSensitive: document.getElementById('caseSensitiveCheckbox').checked,
             };
             const outputOptions = {
-                excludeNotFound: document.getElementById('excludeNotFoundCheckbox').checked,
                 includeAllLookupCols: document.getElementById('includeAllLookupColsCheckbox').checked,
             };
+            const matchFilterMode = document.getElementById('matchFilterMode').value;
 
             if (isNaN(lookupValueCol) || isNaN(lookupCol) || returnCols.some(isNaN)) {
                 displayMessage('Please provide valid column identifiers for all fields. Check for errors in your column ranges.', 'danger');
@@ -369,12 +372,16 @@
                 const matchedRow = (cleanedValue !== undefined && cleanedValue !== null) ? lookupMap.get(cleanedValue) : undefined;
 
                 if (matchedRow) {
-                    const baseRow = outputOptions.includeAllLookupCols ? [...row] : [originalValue];
-                    const foundValues = returnCols.map(c => matchedRow[c] ?? '');
-                    enrichedResults.push([...baseRow, ...foundValues]);
-                } else if (!outputOptions.excludeNotFound) {
-                    const baseRow = outputOptions.includeAllLookupCols ? [...row] : [originalValue];
-                    enrichedResults.push([...baseRow, ...Array(returnCols.length).fill('Not Found')]);
+                    if (matchFilterMode === 'all' || matchFilterMode === 'found') {
+                        const baseRow = outputOptions.includeAllLookupCols ? [...row] : [originalValue];
+                        const foundValues = returnCols.map(c => matchedRow[c] ?? '');
+                        enrichedResults.push([...baseRow, ...foundValues]);
+                    }
+                } else { // Not found
+                    if (matchFilterMode === 'all' || matchFilterMode === 'notfound') {
+                        const baseRow = outputOptions.includeAllLookupCols ? [...row] : [originalValue];
+                        enrichedResults.push([...baseRow, ...Array(returnCols.length).fill('Not Found')]);
+                    }
                 }
             }
             
@@ -402,9 +409,21 @@
             const outputDiv = document.getElementById('output');
             const headers = data[0];
             const body = data.slice(1);
-            const message = document.getElementById('excludeNotFoundCheckbox').checked
-                ? `${body.length} of ${processedCount} records from lookup file resulted in a match.`
-                : `${processedCount} records from lookup file were processed.`;
+            const matchFilterMode = document.getElementById('matchFilterMode').value;
+            let message;
+            
+            switch(matchFilterMode) {
+                case 'found':
+                    message = `${body.length} of ${processedCount} records from the lookup file resulted in a match.`;
+                    break;
+                case 'notfound':
+                    message = `${body.length} of ${processedCount} records from the lookup file could not be found in the source file.`;
+                    break;
+                case 'all':
+                default:
+                    message = `${processedCount} records from the lookup file were processed, showing all results.`;
+                    break;
+            }
             
             outputDiv.innerHTML = `<p class="text-muted">${message}</p>
                 <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
