@@ -1,0 +1,49 @@
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(to right top, #f4f7f6, #dff1f4, #ccecf7, #bce7fa, #b2e1ff);
+    min-height: 100vh;
+}
+.navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+.container { max-width: 800px; }
+.card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,.1);
+}
+.card-header {
+    background-color: #0d6efd;
+    color: white;
+    font-weight: 500;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+}
+.btn-primary { background-color: #0d6efd; border: none; }
+.btn-primary:hover { background-color: #0a58ca; }
+.btn-secondary { background-color: #6c757d; border: none; }
+#result-card { display: none; }
+.spinner-border-sm { margin-right: 5px; }
+.form-check-input:checked { background-color: #0d6efd; border-color: #0d6efd; }
+.preview-container {
+    max-height: 250px;
+    overflow: auto;
+    border: 1px solid #dee2e6;
+    border-radius: .375rem;
+    margin-top: 0.5rem;
+}
+.preview-container table { margin-bottom: 0; }
+.preview-controls input {
+    width: 60px;
+}
+.collapsible-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.collapsible-header .btn-toggle-icon {
+    color: rgba(255, 255, 255, 0.8);
+    transition: transform 0.2s ease-in-out;
+}
+.collapsible-header[aria-expanded="false"] .btn-toggle-icon {
+    transform: rotate(-90deg);
+}
