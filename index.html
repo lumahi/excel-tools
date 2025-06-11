@@ -29,6 +29,9 @@
                 <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSamples" aria-controls="offcanvasSamples">
                     <i class="bi bi-file-earmark-spreadsheet-fill"></i> View Samples
                 </button>
+                <button class="btn btn-outline-success" type="button" id="saveSettingsBtn">
+                    <i class="bi bi-save"></i> Save All
+                </button>
             </div>
         </div>
     </nav>
@@ -49,6 +52,7 @@
                             <h6 class="fw-bold">Source File</h6>
                             <p class="card-text text-muted small">The main file to search within (e.g., master product list).</p>
                             <input class="form-control" type="file" id="fileInputSource" accept=".xlsx">
+                            <div id="savedSourceFilename" class="form-text text-primary small mt-1"></div>
                             <div id="sourcePreview" class="mt-3"></div>
                             
                             <hr class="my-4">
@@ -56,6 +60,7 @@
                             <h6 class="fw-bold">Lookup File</h6>
                             <p class="card-text text-muted small">The file containing values to find (e.g., a list of SKUs).</p>
                             <input class="form-control" type="file" id="fileInputLookup" accept=".xlsx">
+                            <div id="savedLookupFilename" class="form-text text-primary small mt-1"></div>
                             <div id="lookupPreview" class="mt-3"></div>
                         </div>
                     </div>

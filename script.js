@@ -1,5 +1,6 @@
 window.onload = function() {
-    resetApplicationState();
+    resetApplicationState(); // Start with a clean slate
+    loadSettings();          // Then load any saved settings over the top
 };
 
 const vlookupBtn = document.getElementById('vlookupBtn');
@@ -8,6 +9,8 @@ const lookupFileInput = document.getElementById('fileInputLookup');
 const downloadResultsBtn = document.getElementById('downloadResultsBtn');
 const resultsColumn = document.getElementById('results-column');
 const resetAppBtn = document.getElementById('resetAppBtn');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const SETTINGS_KEY = 'vlookupToolSettings';
 
 let enrichedResults = [], cachedSourceData = [], cachedLookupData = [];
 
@@ -331,9 +334,104 @@ function downloadCSV() {
     URL.revokeObjectURL(url);
 }
 
+// --- NEW --- Save/Load/Reset Logic ---
+
+function saveSettings() {
+    const settings = {
+        // We can't save the file object, but we can save the filename as a hint for the user.
+        sourceFileName: sourceFileInput.files.length > 0 ? sourceFileInput.files[0].name : null,
+        lookupFileName: lookupFileInput.files.length > 0 ? lookupFileInput.files[0].name : null,
+
+        // Parameters
+        lookupValueColumn: document.getElementById('lookupValueColumn').value,
+        lookupColumn: document.getElementById('lookupColumn').value,
+        returnColumn: document.getElementById('returnColumn').value,
+        includeAllLookupCols: document.getElementById('includeAllLookupColsCheckbox').checked,
+        matchFilterMode: document.getElementById('matchFilterMode').value,
+
+        // Cleaning options
+        trimWhitespace: document.getElementById('trimWhitespaceCheckbox').checked,
+        ignoreSpecialChars: document.getElementById('ignoreSpecialCharsCheckbox').checked,
+        caseSensitive: document.getElementById('caseSensitiveCheckbox').checked
+    };
+
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+
+    // Provide user feedback by temporarily changing the button
+    const originalText = saveSettingsBtn.innerHTML;
+    saveSettingsBtn.innerHTML = `<i class="bi bi-check-lg"></i> Saved!`;
+    saveSettingsBtn.classList.remove('btn-outline-success');
+    saveSettingsBtn.classList.add('btn-success');
+    saveSettingsBtn.disabled = true;
+
+    setTimeout(() => {
+        saveSettingsBtn.innerHTML = originalText;
+        saveSettingsBtn.classList.remove('btn-success');
+        saveSettingsBtn.classList.add('btn-outline-success');
+        saveSettingsBtn.disabled = false;
+    }, 2000);
+}
+
+function loadSettings() {
+    const savedSettings = localStorage.getItem(SETTINGS_KEY);
+    if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+
+        // Restore text and select inputs
+        document.getElementById('lookupValueColumn').value = settings.lookupValueColumn || '';
+        document.getElementById('lookupColumn').value = settings.lookupColumn || '';
+        document.getElementById('returnColumn').value = settings.returnColumn || '';
+        document.getElementById('matchFilterMode').value = settings.matchFilterMode || 'found';
+
+        // Restore checkboxes (handle undefined for backward compatibility)
+        document.getElementById('includeAllLookupColsCheckbox').checked = settings.includeAllLookupCols !== false;
+        document.getElementById('trimWhitespaceCheckbox').checked = settings.trimWhitespace || false;
+        document.getElementById('ignoreSpecialCharsCheckbox').checked = settings.ignoreSpecialChars || false;
+        document.getElementById('caseSensitiveCheckbox').checked = settings.caseSensitive || false;
+
+        // Display saved filenames as a hint
+        if (settings.sourceFileName) {
+            document.getElementById('savedSourceFilename').innerHTML = `<i class="bi bi-info-circle"></i> Last saved with: <strong>${settings.sourceFileName}</strong>`;
+        }
+        if (settings.lookupFileName) {
+            document.getElementById('savedLookupFilename').innerHTML = `<i class="bi bi-info-circle"></i> Last saved with: <strong>${settings.lookupFileName}</strong>`;
+        }
+        console.log("Settings loaded from localStorage.");
+    }
+}
+
+
+function resetApplicationState() {
+    // 1. Clear the in-memory data arrays
+    enrichedResults = [];
+    cachedSourceData = [];
+    cachedLookupData = [];
+
+    // 2. Reset the main form to its default values
+    // This clears the current values. A page refresh will reload them from localStorage if they exist.
+    document.getElementById('main-form').reset();
+
+    // 3. Clear the file input elements themselves
+    sourceFileInput.value = '';
+    lookupFileInput.value = '';
+
+    // 4. Clear the preview and result areas from the DOM
+    document.getElementById('sourcePreview').innerHTML = '';
+    document.getElementById('lookupPreview').innerHTML = '';
+    document.getElementById('output').innerHTML = '';
+    resultsColumn.style.display = 'none';
+    
+    // Note: Saved settings in localStorage and their UI hints are intentionally NOT cleared.
+    console.log("Current session has been reset. Saved settings are preserved in local storage.");
+}
+
+
 sourceFileInput.addEventListener('change', e => handleFileUpload(e.target.files[0], 'source', 'sourcePreview'));
 lookupFileInput.addEventListener('change', e => handleFileUpload(e.target.files[0], 'lookup', 'lookupPreview'));
 downloadResultsBtn.addEventListener('click', downloadCSV);
+resetAppBtn.addEventListener('click', resetApplicationState);
+saveSettingsBtn.addEventListener('click', saveSettings);
+
 
 // --- SAMPLE FILE GENERATION ---
 
@@ -394,28 +492,6 @@ function downloadSample(data, fileName) {
     XLSX.writeFile(wb, fileName);
 }
 
-function resetApplicationState() {
-    // 1. Clear the in-memory data arrays
-    enrichedResults = [];
-    cachedSourceData = [];
-    cachedLookupData = [];
-
-    // 2. Reset the main form to its default values
-    document.getElementById('main-form').reset();
-
-    // 3. Clear the file input elements themselves
-    sourceFileInput.value = '';
-    lookupFileInput.value = '';
-
-    // 4. Clear the preview and result areas from the DOM
-    document.getElementById('sourcePreview').innerHTML = '';
-    document.getElementById('lookupPreview').innerHTML = '';
-    document.getElementById('output').innerHTML = '';
-    resultsColumn.style.display = 'none';
-    
-    console.log("Application state has been reset.");
-}
-
 document.getElementById('downloadSourceStandardBtn').addEventListener('click', () => {
      const { sourceData } = generateSampleData(20, false);
      downloadSample(sourceData, 'sample_source_standard.xlsx');
@@ -435,5 +511,3 @@ document.getElementById('downloadLookupPerfectBtn').addEventListener('click', ()
      const { lookupData } = generateSampleData(20, true);
      downloadSample(lookupData, 'sample_lookup_perfect.xlsx');
 });
-
-resetAppBtn.addEventListener('click', resetApplicationState);
